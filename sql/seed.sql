@@ -1,0 +1,2 @@
+-- No seed data required.
+-- Create test candidates through the registration menu.
