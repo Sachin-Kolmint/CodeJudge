@@ -3,9 +3,11 @@ package modules.candidateAuth;
 import config.DBConnection;
 import model.Candidate;
 import java.sql.*;
-import java.security.GeneralSecurityException;
 
 public class CandidateAuthDAO {
+
+    // Database से मिली identity और hash को Service तक पहुँचाता है।
+    public record LoginData(Candidate candidate, String passwordHash) {}
 
     public boolean register(String fullName, String username,
                             String email, String passwordHash)
@@ -34,9 +36,7 @@ public class CandidateAuthDAO {
         }
     }
 
-    public Candidate login(String username, String password)
-            throws SQLException, GeneralSecurityException {
-
+    public LoginData findByUsername(String username) throws SQLException {
         String sql = """
                 SELECT candidate_id, full_name, username, email, password_hash
                 FROM candidates WHERE username = ?
@@ -48,19 +48,20 @@ public class CandidateAuthDAO {
             ps.setString(1, username);
 
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next() && PasswordUtil.verify(
-                        password, rs.getString("password_hash"))) {
-
-                    return new Candidate(
-                            rs.getInt("candidate_id"),
-                            rs.getString("full_name"),
-                            rs.getString("username"),
-                            rs.getString("email")
-                    );
+                if (!rs.next()) {
+                    return null;
                 }
+
+                Candidate candidate = new Candidate(
+                        rs.getInt("candidate_id"),
+                        rs.getString("full_name"),
+                        rs.getString("username"),
+                        rs.getString("email")
+                );
+
+                return new LoginData(
+                        candidate, rs.getString("password_hash"));
             }
         }
-
-        return null;
     }
 }

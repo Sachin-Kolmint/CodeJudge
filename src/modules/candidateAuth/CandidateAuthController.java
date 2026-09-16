@@ -7,8 +7,12 @@ import java.security.GeneralSecurityException;
 
 public class CandidateAuthController {
     private final CandidateAuthService service = new CandidateAuthService();
-    private final CandidateSession session = new CandidateSession();
+    private final CandidateSession session;
     private final Scanner scanner = new Scanner(System.in);
+
+    public CandidateAuthController(CandidateSession session) {
+        this.session = java.util.Objects.requireNonNull(session);
+    }
 
     public void start() {
         while (true) {

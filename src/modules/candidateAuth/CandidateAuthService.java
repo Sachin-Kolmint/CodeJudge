@@ -44,15 +44,25 @@ public class CandidateAuthService {
                 PasswordUtil.hash(password));
     }
 
-    public Candidate login(String username, String password)
+        public Candidate login(String username, String password)
             throws SQLException, GeneralSecurityException {
 
         requireValue(username, "Username");
         requireValue(password, "Password");
 
-        return dao.login(username.trim(), password);
-    }
+        CandidateAuthDAO.LoginData data =
+                dao.findByUsername(username.trim());
 
+        if (data == null) {
+            return null;
+        }
+
+        if (!PasswordUtil.verify(password, data.passwordHash())) {
+            return null;
+        }
+
+        return data.candidate();
+    }
     private void requireValue(String value, String field) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(field + " is required.");

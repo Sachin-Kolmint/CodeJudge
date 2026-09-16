@@ -56,3 +56,25 @@ The root account is used for local development.
 - Reconcile shared model and schema with Member 1 during integration.
 - The current console menu demonstrates candidate authentication.
 - Sessions end when the application closes.
+
+### Authentication Integration Contract
+- CandidateAuthDAO retrieves the candidate and stored password hash.
+- CandidateAuthService verifies the password and returns a Candidate
+  on successful login, or null for invalid credentials.
+- Main creates one CandidateSession and passes it to
+  CandidateAuthController through its constructor.
+- During integration, pass that same session instance to the
+  Test Attempt and Candidate Results modules.
+- Protected operations must check session.isLoggedIn() before using
+  session.getCurrentCandidate().getCandidateId().
+- Logout clears the candidate from the shared session.
+- Actual cross-module access checks remain pending integration.
+
+### Session Test
+Run after compiling the application:
+
+javac -encoding UTF-8 -cp out -d out tests\SessionTest.java
+java -cp out SessionTest
+
+Passed: initial logged-out state, shared candidate identity after
+login, and cleared identity after logout.
