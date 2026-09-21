@@ -1,80 +1,223 @@
-## Candidate Authentication Module
+# CodeJudge
 
-### Features
-- Candidate registration with input validation
-- Duplicate username and email prevention
-- Login using username and password
-- Password hashing using PBKDF2-HMAC-SHA256 and random salt
-- In-memory candidate session and logout
+A console-based assessment platform built with Java, JDBC and MySQL.
 
-### Requirements
+## Project Status
+
+The main console workflows are implemented and have been manually
+tested during development. Final access-control checks, concurrency
+testing and fresh-install verification are still pending.
+
+A graphical user interface is planned after console validation.
+
+## Features
+
+### Admin
+- Login and logout
+- Create, view and edit tests
+- Activate and deactivate tests
+- Add, view, edit and delete questions
+- Reset candidate passwords
+- View results for owned tests
+- View per-test leaderboards
+- Export results to CSV
+
+### Candidate
+- Register, log in and log out
+- Change username and password using the current password
+- View available tests
+- Start or resume a test
+- Save and change answers before the deadline
+- Submit a test
+- View personal results and test history
+
+## Assessment Rules
+
+- Each candidate can have only one attempt per test.
+- An unfinished attempt can resume before its original deadline.
+- Returning to the menu does not pause the timer.
+- Submitted or timed-out attempts cannot be attempted again.
+- Correct answers receive the question's marks.
+- Incorrect and unanswered questions receive zero marks.
+- Candidates cannot edit their scores.
+- Equal scores receive equal leaderboard ranks, such as 1, 1, 3.
+
+## Test Management Rules
+
+- Admins manage tests that they created.
+- Tests must contain at least one question before activation.
+- Test details and questions can only be changed while the test
+  is inactive and has no attempts.
+- Deactivation hides a test from the available-tests list and
+  prevents new attempts.
+- Existing attempts may continue until their original deadlines.
+- Deactivation does not remove previous results.
+
+## Requirements
+
 - JDK 21
 - MySQL Server 8.4
-- MySQL Connector/J JAR placed in the lib folder
+- MySQL Connector/J JAR in the lib folder
+- Windows CMD for the commands below and hidden password input
 
-### Database Setup
-Start MySQL Server and open the MySQL command-line client.
-Run:
+## Database Setup
+
+Start the MySQL service. If necessary, open CMD as administrator:
+
+```bat
+net start MySQL84
+```
+
+The service name may differ on another computer.
+
+Open the MySQL client:
+
+```bat
+"C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe" -u root -p
+```
+
+For a fresh database, run:
 
 ```sql
 SOURCE C:/CodeJudge/sql/schema.sql;
 ```
 
-### Compile and Run
-Open Windows Command Prompt in C:\CodeJudge.
-Set your local MySQL root password for this terminal session:
+Adjust the file paths for your computer.
+
+The schema uses CREATE TABLE IF NOT EXISTS. Running it against an
+older database does not automatically add missing columns or
+constraints. Existing databases require appropriate migrations.
+
+## Compile
+
+From the project directory:
+
+```bat
+cd /d C:\CodeJudge
+javac -encoding UTF-8 -cp "lib/*" -sourcepath src -d out src\Main.java src\modules\adminAuth\AdminSetup.java
+```
+
+This compiles the application, the admin setup utility and their
+referenced source files.
+
+## Database Password
+
+Set the MySQL root password in the CMD session used to run the app:
 
 ```bat
 set "CODEJUDGE_DB_PASSWORD=YOUR_LOCAL_MYSQL_PASSWORD"
 ```
 
-Compile and run:
+The current local-development configuration uses:
+
+- Host: localhost
+- Port: 3306
+- Database: codejudge
+- User: root
+
+Never commit real passwords. A deployed application should use a
+dedicated database account with suitable permissions.
+
+## Create an Admin Account
+
+Run the local setup utility:
 
 ```bat
-javac -encoding UTF-8 -cp "lib/*" -d out src\Main.java src\config\DBConnection.java src\model\Candidate.java src\modules\candidateAuth\*.java
+java -cp "out;lib/*" modules.adminAuth.AdminSetup
+```
+
+Enter the name, username, password and password confirmation.
+This utility is intended for the person administering the local
+installation and is not part of candidate registration.
+
+## Run the Application
+
+```bat
 java -cp "out;lib/*" Main
 ```
 
-The database connection uses localhost:3306 and database codejudge.
-The root account is used for local development.
+Choose Admin or Candidate from the main menu.
 
-### Manual Tests Passed
-- Registration with valid details
-- Successful login and logout
-- Incorrect password rejection
-- Duplicate account rejection
-- Empty username rejection
-- Invalid email rejection
-- Short password rejection
-- Invalid username rejection
-- Stored password hash format verification
+## Automatic Evaluation
 
-### Integration Notes
-- Flow: Controller → Service → DAO → MySQL
-- Shared model: src/model/Candidate.java
-- Shared connection: src/config/DBConnection.java
-- Reconcile shared model and schema with Member 1 during integration.
-- The current console menu demonstrates candidate authentication.
-- Sessions end when the application closes.
+While the application is running, a background scheduler checks
+for expired attempts. It waits one second after each completed
+check before starting the next check.
 
-### Authentication Integration Contract
-- CandidateAuthDAO retrieves the candidate and stored password hash.
-- CandidateAuthService verifies the password and returns a Candidate
-  on successful login, or null for invalid credentials.
-- Main creates one CandidateSession and passes it to
-  CandidateAuthController through its constructor.
-- During integration, pass that same session instance to the
-  Test Attempt and Candidate Results modules.
-- Protected operations must check session.isLoggedIn() before using
-  session.getCurrentCandidate().getCandidateId().
-- Logout clears the candidate from the shared session.
-- Actual cross-module access checks remain pending integration.
+Expired attempts are evaluated from saved answers and marked
+TIMED_OUT. Database failures are retried on later checks.
 
-### Session Test
-Run after compiling the application:
+When the application is closed, the scheduler is not running.
+Expired attempts are processed after the application restarts.
+Deadlines remain unchanged.
 
-javac -encoding UTF-8 -cp out -d out tests\SessionTest.java
-java -cp out SessionTest
+A console input prompt may remain visible after automatic
+evaluation. Further answer changes are rejected.
 
-Passed: initial logged-out state, shared candidate identity after
-login, and cleared identity after logout.
+## CSV Exports
+
+Reports are saved in an exports folder relative to the application's
+working directory. Each export receives a separate filename.
+
+Exports include candidate information and should remain local.
+The exports folder and compiled output are excluded from Git.
+
+## Architecture
+
+Controller -> Service -> DAO -> MySQL
+
+- Controller: console menus, input and output
+- Service: validation, session checks and business rules
+- DAO: SQL queries and database transactions
+- Model: shared data objects
+- Session: current logged-in identity
+
+Passwords are stored as salted PBKDF2-HMAC-SHA256 hashes.
+SQL parameters use PreparedStatement.
+
+Candidate-facing services obtain the candidate ID from the session.
+Admin services obtain the admin ID from the session.
+
+## Project Structure
+
+- sql/: database schema and seed file
+- src/Main.java: application entry point
+- src/config/: database connection
+- src/model/: shared models
+- src/modules/adminAuth/: admin authentication and candidate password reset
+- src/modules/candidateAuth/: candidate authentication and account changes
+- src/modules/testManagement/: tests and questions
+- src/modules/testAttempt/: attempts and saved answers
+- src/modules/evaluation/: submission, scoring and timeout processing
+- src/modules/candidateResults/: personal results and history
+- src/modules/reports/: admin reports, leaderboards and CSV export
+- lib/: JDBC driver
+- tests/: existing test sources
+- out/: generated class files
+- exports/: generated CSV reports
+
+## Validation
+
+Manually checked during development:
+
+- Authentication and account changes
+- Candidate password reset by an admin
+- Test activation and deactivation
+- Saving and resuming answers
+- Automatic timeout evaluation
+- Candidate results and admin reports
+- Leaderboard display and CSV generation
+- Test and question management
+
+These checks do not replace the pending final test pass. Verify
+cross-account access restrictions, repeat-attempt prevention,
+deadline enforcement, concurrent operations and a fresh setup
+before treating the project as release-ready.
+
+## Team Conventions
+
+- Write code comments and documentation in English.
+- Keep SQL in DAO classes and business rules in service classes.
+- Do not log passwords or commit credentials, exports or compiled files.
+- Document database changes.
+- Work on feature branches and submit pull requests for review.
