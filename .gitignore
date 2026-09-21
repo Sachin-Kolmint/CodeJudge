@@ -31,3 +31,7 @@ lib/*.jar
 
 # Local environment files
 .env
+
+/out/
+/exports/
+*.class

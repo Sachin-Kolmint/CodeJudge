@@ -63,6 +63,125 @@ public class CandidateAuthService {
 
         return data.candidate();
     }
+    public void changeUsername(CandidateSession session,
+                               String currentPassword,
+                               String newUsername)
+            throws SQLException, GeneralSecurityException {
+
+        CandidateAuthDAO.LoginData data =
+                verifyCurrentPassword(session, currentPassword);
+
+        requireValue(newUsername, "New username");
+        newUsername = newUsername.trim();
+
+        if (!newUsername.matches("[A-Za-z0-9_]{3,50}")) {
+            throw new IllegalArgumentException(
+                    "Username must contain 3-50 letters, numbers or underscores.");
+        }
+
+        Candidate candidate = data.candidate();
+
+        if (newUsername.equalsIgnoreCase(candidate.getUsername())) {
+            throw new IllegalArgumentException(
+                    "Choose a different username.");
+        }
+
+        boolean updated;
+
+        try {
+            updated = dao.updateUsername(
+                    candidate.getCandidateId(),
+                    newUsername,
+                    data.passwordHash()
+            );
+        } catch (SQLException e) {
+            if (e.getErrorCode() == 1062) {
+                throw new IllegalArgumentException(
+                        "Username already taken. Choose another.");
+            }
+            throw e;
+        }
+
+        if (!updated) {
+            throw new IllegalStateException(
+                    "Account changed during this request. Please try again.");
+        }
+
+        session.login(new Candidate(
+                candidate.getCandidateId(),
+                candidate.getFullName(),
+                newUsername,
+                candidate.getEmail()
+        ));
+    }
+
+    public void changePassword(CandidateSession session,
+                               String currentPassword,
+                               String newPassword,
+                               String confirmation)
+            throws SQLException, GeneralSecurityException {
+
+        CandidateAuthDAO.LoginData data =
+                verifyCurrentPassword(session, currentPassword);
+
+        requireValue(newPassword, "New password");
+
+        if (newPassword.length() < 8 || newPassword.length() > 128) {
+            throw new IllegalArgumentException(
+                    "Password must contain 8-128 characters.");
+        }
+
+        if (!newPassword.equals(confirmation)) {
+            throw new IllegalArgumentException(
+                    "New passwords do not match.");
+        }
+
+        if (newPassword.equals(currentPassword)) {
+            throw new IllegalArgumentException(
+                    "New password must differ from current password.");
+        }
+
+        String newHash = PasswordUtil.hash(newPassword);
+
+        boolean updated = dao.updatePassword(
+                data.candidate().getCandidateId(),
+                newHash,
+                data.passwordHash()
+        );
+
+        if (!updated) {
+            throw new IllegalStateException(
+                    "Account changed during this request. Please try again.");
+        }
+    }
+
+    private CandidateAuthDAO.LoginData verifyCurrentPassword(
+            CandidateSession session, String currentPassword)
+            throws SQLException, GeneralSecurityException {
+
+        if (session == null || !session.isLoggedIn()) {
+            throw new IllegalStateException(
+                    "Please log in as candidate.");
+        }
+
+        requireValue(currentPassword, "Current password");
+
+        CandidateAuthDAO.LoginData data = dao.findById(
+                session.getCurrentCandidate().getCandidateId());
+
+        if (data == null) {
+            session.logout();
+            throw new IllegalStateException(
+                    "Account not found. Please log in again.");
+        }
+
+        if (!PasswordUtil.verify(currentPassword, data.passwordHash())) {
+            throw new IllegalArgumentException(
+                    "Current password is incorrect.");
+        }
+
+        return data;
+    }
     private void requireValue(String value, String field) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(field + " is required.");

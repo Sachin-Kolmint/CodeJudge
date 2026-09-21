@@ -64,4 +64,77 @@ public class CandidateAuthDAO {
             }
         }
     }
+    public LoginData findById(int candidateId) throws SQLException {
+        String sql = """
+                SELECT candidate_id, full_name, username, email, password_hash
+                FROM candidates
+                WHERE candidate_id = ?
+                """;
+
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, candidateId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return null;
+                }
+
+                Candidate candidate = new Candidate(
+                        rs.getInt("candidate_id"),
+                        rs.getString("full_name"),
+                        rs.getString("username"),
+                        rs.getString("email")
+                );
+
+                return new LoginData(
+                        candidate, rs.getString("password_hash"));
+            }
+        }
+    }
+
+    public boolean updateUsername(int candidateId, String newUsername,
+                                  String verifiedPasswordHash)
+            throws SQLException {
+
+        String sql = """
+                UPDATE candidates
+                SET username = ?
+                WHERE candidate_id = ?
+                  AND CAST(password_hash AS BINARY) = CAST(? AS BINARY)
+                """;
+
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, newUsername);
+            ps.setInt(2, candidateId);
+            ps.setString(3, verifiedPasswordHash);
+
+            return ps.executeUpdate() == 1;
+        }
+    }
+
+    public boolean updatePassword(int candidateId, String newPasswordHash,
+                                  String verifiedPasswordHash)
+            throws SQLException {
+
+        String sql = """
+                UPDATE candidates
+                SET password_hash = ?
+                WHERE candidate_id = ?
+                  AND CAST(password_hash AS BINARY) = CAST(? AS BINARY)
+                """;
+
+        try (Connection con = DBConnection.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, newPasswordHash);
+            ps.setInt(2, candidateId);
+            ps.setString(3, verifiedPasswordHash);
+
+            return ps.executeUpdate() == 1;
+        }
+    }
 }
