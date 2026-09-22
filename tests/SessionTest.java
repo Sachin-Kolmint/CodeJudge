@@ -11,9 +11,13 @@ public class SessionTest {
         check(!otherModuleSession.isLoggedIn(),
                 "Before login: no authenticated session");
 
-        authSession.login(
-                new Candidate(1, "Test Candidate", "testcandidate",
-                        "testcandidate@example.com"));
+        Candidate candidate = new Candidate();
+        candidate.setCandidateId(1);
+        candidate.setFullName("Test Candidate");
+        candidate.setUsername("testcandidate");
+        candidate.setEmail("testcandidate@example.com");
+
+        authSession.login(candidate);
 
         check(otherModuleSession.isLoggedIn()
                         && otherModuleSession.getCurrentCandidate()

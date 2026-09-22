@@ -31,3 +31,5 @@ lib/*.jar
 
 # Local environment files
 .env
+
+/src/config/db.properties

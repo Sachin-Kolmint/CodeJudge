@@ -6,7 +6,7 @@ import java.sql.*;
 
 public class CandidateAuthDAO {
 
-    // Database से मिली identity और hash को Service तक पहुँचाता है।
+        // Carries the candidate identity and password hash to the service.
     public record LoginData(Candidate candidate, String passwordHash) {}
 
     public boolean register(String fullName, String username,
@@ -52,12 +52,11 @@ public class CandidateAuthDAO {
                     return null;
                 }
 
-                Candidate candidate = new Candidate(
-                        rs.getInt("candidate_id"),
-                        rs.getString("full_name"),
-                        rs.getString("username"),
-                        rs.getString("email")
-                );
+                Candidate candidate = new Candidate();
+                candidate.setCandidateId(rs.getInt("candidate_id"));
+                candidate.setFullName(rs.getString("full_name"));
+                candidate.setUsername(rs.getString("username"));
+                candidate.setEmail(rs.getString("email"));
 
                 return new LoginData(
                         candidate, rs.getString("password_hash"));

@@ -1,80 +1,162 @@
-## Candidate Authentication Module
+# Candidate Authentication Module - Member 5
 
-### Features
-- Candidate registration with input validation
+## Scope
+
+Candidate registration, login, logout, and shared candidate identity.
+This branch contains a standalone authentication demo for team integration.
+
+## Features
+
+- Registration with input validation
 - Duplicate username and email prevention
-- Login using username and password
-- Password hashing using PBKDF2-HMAC-SHA256 and random salt
-- In-memory candidate session and logout
+- Password hashing with PBKDF2-HMAC-SHA256 and a random salt
+- Password verification in the service layer
+- PreparedStatement-based database access
+- Shared in-memory candidate session
+- Shared Scanner supplied by Main
+- Explicit logout and application exit messages
 
-### Requirements
+## Requirements
+
 - JDK 21
 - MySQL Server 8.4
-- MySQL Connector/J JAR placed in the lib folder
+- MySQL Connector/J JAR in the lib directory
 
-### Database Setup
-Start MySQL Server and open the MySQL command-line client.
-Run:
+## Standalone Test Database
+
+Open the MySQL command-line client and run:
 
 ```sql
-SOURCE C:/CodeJudge/sql/schema.sql;
+CREATE DATABASE IF NOT EXISTS codejudge_member5
+CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+USE codejudge_member5;
+
+CREATE TABLE IF NOT EXISTS candidates (
+    candidate_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
 ```
 
-### Compile and Run
-Open Windows Command Prompt in C:\CodeJudge.
-Set your local MySQL root password for this terminal session:
+This isolated database tests Member 5 against Member 1's candidate
+table structure. It is not the complete team database.
+
+The existing sql/schema.sql targets codejudge, so use the SQL above
+for this isolated test setup.
+
+## Local Database Configuration
+
+From the project root in Windows Command Prompt:
 
 ```bat
-set "CODEJUDGE_DB_PASSWORD=YOUR_LOCAL_MYSQL_PASSWORD"
+copy src\config\db.properties.example src\config\db.properties
 ```
 
-Compile and run:
+If db.properties already exists, edit it without overwriting it.
+
+Set these properties using your local MySQL credentials:
+
+```properties
+db.url=jdbc:mysql://localhost:3306/codejudge_member5?useSSL=false&serverTimezone=UTC
+db.user=root
+db.password=YOUR_LOCAL_MYSQL_PASSWORD
+```
+
+db.properties is ignored by Git. Never commit real credentials.
+The root account and disabled SSL setting are for local testing only.
+
+DBConfig loads /config/db.properties from the runtime classpath.
+The CODEJUDGE_DB_PASSWORD environment variable is no longer used.
+
+## Compile and Run
+
+Open Windows Command Prompt in the project root.
+For the current worktree:
 
 ```bat
-javac -encoding UTF-8 -cp "lib/*" -d out src\Main.java src\config\DBConnection.java src\model\Candidate.java src\modules\candidateAuth\*.java
+cd /d C:\CodeJudge-member5
+javac -encoding UTF-8 -cp "lib/*" -d out -sourcepath src src\Main.java tests\SessionTest.java
+copy /Y src\config\db.properties out\config\db.properties
 java -cp "out;lib/*" Main
 ```
 
-The database connection uses localhost:3306 and database codejudge.
-The root account is used for local development.
+Stop if compilation fails.
 
-### Manual Tests Passed
+Repeat the properties copy command whenever local credentials change.
+Java compilation does not copy configuration resources automatically.
+
+Run from a terminal for hidden password entry. The current controller
+uses visible password input when System.console() is unavailable.
+
+## Session Test
+
+After compilation:
+
+```bat
+java -cp out SessionTest
+```
+
+This checks:
+
+- No authenticated identity before login
+- Shared candidate identity after login
+- Cleared identity after logout
+
+## Manual Checks Completed
+
 - Registration with valid details
-- Successful login and logout
+- Successful login
 - Incorrect password rejection
-- Duplicate account rejection
-- Empty username rejection
+- Duplicate username rejection
+- Duplicate email rejection
+- Blank full name rejection
+- Invalid username rejection
 - Invalid email rejection
 - Short password rejection
-- Invalid username rejection
-- Stored password hash format verification
+- Logout returns to the authentication menu
+- Menus display option 0 first
+- Logout and exit display explicit messages
+- Login, logout, and exit work with the shared Scanner
 
-### Integration Notes
-- Flow: Controller → Service → DAO → MySQL
-- Shared model: src/model/Candidate.java
-- Shared connection: src/config/DBConnection.java
-- Reconcile shared model and schema with Member 1 during integration.
-- The current console menu demonstrates candidate authentication.
-- Sessions end when the application closes.
+These checks cover the standalone module, not full team integration.
 
-### Authentication Integration Contract
-- CandidateAuthDAO retrieves the candidate and stored password hash.
-- CandidateAuthService verifies the password and returns a Candidate
-  on successful login, or null for invalid credentials.
-- Main creates one CandidateSession and passes it to
-  CandidateAuthController through its constructor.
-- During integration, pass that same session instance to the
-  Test Attempt and Candidate Results modules.
-- Protected operations must check session.isLoggedIn() before using
+## Architecture
+
+Controller -> Service -> DAO -> MySQL
+
+- CandidateAuthController handles terminal input and messages.
+- CandidateAuthService validates inputs and verifies passwords.
+- CandidateAuthDAO performs SQL operations.
+- PasswordUtil hashes and verifies passwords.
+- CandidateSession holds the authenticated candidate in memory.
+
+## Team Integration Contract
+
+The Candidate model, DBConfig, and DBConnection were adopted from
+Member 1's shared foundation branch.
+
+- Use model.Candidate as the shared candidate model.
+- Use config.DBConnection.getConnection() for database access.
+- Keep password hashes separate from the session Candidate.
+- CandidateAuthDAO returns candidate identity and hash as LoginData.
+- CandidateAuthService returns a Candidate after successful verification,
+  or null for invalid credentials.
+- Main creates one CandidateSession and one Scanner.
+- Construct the controller with:
+  new CandidateAuthController(session, scanner)
+- Pass the same session to Test Attempt and Candidate Results.
+- Protected operations must check session.isLoggedIn() before reading
   session.getCurrentCandidate().getCandidateId().
-- Logout clears the candidate from the shared session.
-- Actual cross-module access checks remain pending integration.
+- The application owns the Scanner; controllers must not close it.
+- Logout clears the shared session.
+- The current standalone option 0 exits the application. When integrating
+  with a parent menu, adapt its label and message to the return behavior.
+- JDK 21 is required by this module and must be reflected in the team build.
+- Coordinate the final database setup with Member 1.
 
-### Session Test
-Run after compiling the application:
-
-javac -encoding UTF-8 -cp out -d out tests\SessionTest.java
-java -cp out SessionTest
-
-Passed: initial logged-out state, shared candidate identity after
-login, and cleared identity after logout.
+Cross-module authorization and the integrated application flow still
+require testing with the other members' modules.

@@ -8,36 +8,40 @@ import java.security.GeneralSecurityException;
 public class CandidateAuthController {
     private final CandidateAuthService service = new CandidateAuthService();
     private final CandidateSession session;
-    private final Scanner scanner = new Scanner(System.in);
+    private final Scanner scanner;
 
-    public CandidateAuthController(CandidateSession session) {
-        this.session = java.util.Objects.requireNonNull(session);
-    }
+public CandidateAuthController(CandidateSession session, Scanner scanner) {
+    this.session = java.util.Objects.requireNonNull(session);
+    this.scanner = java.util.Objects.requireNonNull(scanner);
+}
 
     public void start() {
         while (true) {
             if (session.isLoggedIn()) {
                 System.out.println("\nWelcome, "
                         + session.getCurrentCandidate().getFullName());
-                System.out.println("1. Logout");
                 System.out.println("0. Exit");
+                System.out.println("1. Logout");
 
                 String choice = read("Choose: ");
 
                 if (choice.equals("1")) {
-                    session.logout();
-                    System.out.println("Logged out successfully.");
-                } else if (choice.equals("0")) {
-                    session.logout();
-                    return;
-                } else {
+    session.logout();
+    System.out.println(
+            "Logged out successfully. Returning to candidate login menu.");
+} else if (choice.equals("0")) {
+    session.logout();
+    System.out.println(
+            "Logged out successfully. Exiting CodeJudge. Goodbye!");
+    return;
+	}else {
                     System.out.println("Invalid choice.");
                 }
             } else {
                 System.out.println("\n--- CodeJudge Candidate Authentication ---");
+                System.out.println("0. Exit");
                 System.out.println("1. Register");
                 System.out.println("2. Login");
-                System.out.println("0. Exit");
 
                 String choice = read("Choose: ");
 
@@ -45,7 +49,10 @@ public class CandidateAuthController {
                     switch (choice) {
                         case "1" -> register();
                         case "2" -> login();
-                        case "0" -> { return; }
+                        case "0" -> {
+    System.out.println("Exiting CodeJudge. Goodbye!");
+    return;
+}
                         default -> System.out.println("Invalid choice.");
                     }
                 } catch (IllegalArgumentException e) {

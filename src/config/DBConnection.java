@@ -4,19 +4,32 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
-public class DBConnection {
+/**
+ * Provides JDBC connections to the CodeJudge database.
+ *
+ * Usage in a DAO:
+ *   try (Connection conn = DBConnection.getConnection();
+ *        PreparedStatement ps = conn.prepareStatement(sql)) {
+ *       ...
+ *   }
+ *
+ * Every DAO should open a connection, use it, and close it via
+ * try-with-resources -- do not hold a shared long-lived
+ * Connection across requests.
+ *
+ * Requires the MySQL Connector/J JAR on the classpath.
+ */
+public final class DBConnection {
+
+    private DBConnection() {
+        // utility class, not instantiable
+    }
 
     public static Connection getConnection() throws SQLException {
-        String password = System.getenv("CODEJUDGE_DB_PASSWORD");
-
-        if (password == null || password.isBlank()) {
-            throw new SQLException("CODEJUDGE_DB_PASSWORD is not set.");
-        }
-
         return DriverManager.getConnection(
-            "jdbc:mysql://localhost:3306/codejudge",
-            "root",
-            password
+                DBConfig.getUrl(),
+                DBConfig.getUser(),
+                DBConfig.getPassword()
         );
     }
 }
