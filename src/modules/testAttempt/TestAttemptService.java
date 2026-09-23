@@ -2,6 +2,7 @@ package modules.testAttempt;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Comparator;
 import java.util.Objects;
 import model.TestAttempt;
 import model.Test;
@@ -20,11 +21,38 @@ public class TestAttemptService {
     }
 
     public List<Test> getAvailableTests() throws SQLException {
+        return getAvailableTests("", 1);
+    }
+
+    public List<Test> getAvailableTests(String keyword, int sortChoice)
+            throws SQLException {
+
         if (!session.isLoggedIn()) {
             throw new IllegalStateException("Please log in as candidate.");
         }
 
-        return dao.findAvailableTests();
+        String search = keyword == null
+                ? "" : keyword.trim().toLowerCase(Locale.ROOT);
+
+        Comparator<Test> comparator = switch (sortChoice) {
+            case 1 -> Comparator.comparingInt(Test::getTestId);
+            case 2 -> Comparator.comparing(
+                    Test::getTitle, String.CASE_INSENSITIVE_ORDER);
+            case 3 -> Comparator.comparingInt(Test::getDurationMinutes);
+            case 4 -> Comparator.comparingInt(Test::getTotalMarks)
+                    .reversed();
+            default -> throw new IllegalArgumentException(
+                    "Choose a sorting option from 1 to 4.");
+        };
+
+        return dao.findAvailableTests().stream()
+                .filter(test -> search.isEmpty()
+                        || test.getTitle().toLowerCase(Locale.ROOT)
+                                .contains(search)
+                        || test.getCategory().toLowerCase(Locale.ROOT)
+                                .contains(search))
+                .sorted(comparator.thenComparingInt(Test::getTestId))
+                .toList();
     }
     public TestAttempt startOrResumeTest(int testId)
             throws SQLException {

@@ -95,16 +95,45 @@ public class CandidateAuthController {
         }
     }
     private void showAvailableTests() {
+        System.out.println("\n--- Available Tests ---");
+        System.out.println("0. Back");
+        System.out.println(
+                "Search by title or category. Press Enter to show all.");
+
+        String keyword = read("Search: ").trim();
+
+        if (keyword.equals("0")) {
+            System.out.println("Returning to candidate menu.");
+            return;
+        }
+
+        System.out.println("\nSort by:");
+        System.out.println("0. Back");
+        System.out.println("1. Test ID");
+        System.out.println("2. Title (A-Z)");
+        System.out.println("3. Duration (shortest first)");
+        System.out.println("4. Total marks (highest first)");
+
+        String sortInput = read("Choose (Enter for Test ID): ").trim();
+
+        if (sortInput.equals("0")) {
+            System.out.println("Returning to candidate menu.");
+            return;
+        }
+
         try {
+            int sortChoice = sortInput.isEmpty()
+                    ? 1 : Integer.parseInt(sortInput);
+
             TestAttemptService testService =
                     new TestAttemptService(session);
 
-            List<Test> tests = testService.getAvailableTests();
-
-            System.out.println("\n--- Available Tests ---");
+            List<Test> tests =
+                    testService.getAvailableTests(keyword, sortChoice);
 
             if (tests.isEmpty()) {
-                System.out.println("No tests are currently available.");
+                System.out.println(
+                        "No available tests match your search.");
                 return;
             }
 
@@ -118,7 +147,11 @@ public class CandidateAuthController {
                         + " | Total marks: " + test.getTotalMarks());
             }
 
-        } catch (IllegalStateException e) {
+            System.out.println("Tests found: " + tests.size());
+
+        } catch (NumberFormatException e) {
+            System.out.println("Enter a valid sorting option number.");
+        } catch (IllegalArgumentException | IllegalStateException e) {
             System.out.println(e.getMessage());
         } catch (SQLException e) {
             System.out.println(
