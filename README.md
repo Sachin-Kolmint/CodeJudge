@@ -14,9 +14,11 @@ A graphical user interface is planned after console validation.
 
 ### Admin
 - Login and logout
-- Create, view and edit tests
+- Create, view, edit and delete eligible tests
+- Set test category, duration and total marks
 - Activate and deactivate tests
 - Add, view, edit and delete questions
+- View registered candidates
 - Reset candidate passwords
 - View results for owned tests
 - View per-test leaderboards
@@ -25,11 +27,21 @@ A graphical user interface is planned after console validation.
 ### Candidate
 - Register, log in and log out
 - Change username and password using the current password
-- View available tests
-- Start or resume a test
+- View available tests with category, duration and total marks
+- Search available tests by title or category
+- Sort tests by ID, title, duration or total marks using Java Streams
+- Start or resume a test with a live console countdown
 - Save and change answers before the deadline
 - Submit a test
 - View personal results and test history
+- View per-test leaderboards with the current candidate marked as You
+
+### Category Design
+Questions use their parent test's category. There is no separate
+question-category field. Admins are responsible for adding questions
+that match the test category.
+
+Passing marks, pass/fail classification and grades are not implemented.
 
 ## Assessment Rules
 
@@ -45,9 +57,15 @@ A graphical user interface is planned after console validation.
 ## Test Management Rules
 
 - Admins manage tests that they created.
-- Tests must contain at least one question before activation.
+- Test duration and total marks must be positive whole numbers.
+- Activation requires at least one question.
+- The sum of question marks must equal the configured test total
+  before activation.
 - Test details and questions can only be changed while the test
   is inactive and has no attempts.
+- An admin can delete an owned, inactive test with no attempts.
+- Deletion removes the test and its questions in one transaction.
+- Tests with attempts cannot be deleted.
 - Deactivation hides a test from the available-tests list and
   prevents new attempts.
 - Existing attempts may continue until their original deadlines.
@@ -87,6 +105,19 @@ Adjust the file paths for your computer.
 The schema uses CREATE TABLE IF NOT EXISTS. Running it against an
 older database does not automatically add missing columns or
 constraints. Existing databases require appropriate migrations.
+
+## Upgrading an Existing Database
+
+Fresh installations use the latest sql/schema.sql only.
+Do not run these migrations after creating a fresh database from
+that schema: the columns and constraints already exist.
+
+For a database created before categories and configurable total
+marks were added, run the missing migrations in this order:
+
+```sql
+SOURCE C:/CodeJudge/sql/migration_001_test_category.sql;
+SOURCE C:/CodeJudge/sql/migration_002_test_total_marks.sql;
 
 ## Compile
 
@@ -154,6 +185,24 @@ Deadlines remain unchanged.
 A console input prompt may remain visible after automatic
 evaluation. Further answer changes are rejected.
 
+## Countdown Display
+
+A separate scheduled thread displays the remaining time every second
+while the candidate is in the test screen.
+
+- The display uses the original attempt deadline.
+- Back stops the display but does not pause the attempt.
+- Resume starts the display using the remaining time.
+- Submission or leaving the test screen stops the display thread.
+- The countdown prints on new console lines and may appear between
+  input prompts.
+- At expiry, press Enter to leave a pending input prompt, then view
+  My Results.
+- The countdown does not calculate scores or perform submission.
+  The existing evaluation scheduler handles automatic finalization.
+- Database deadline checks determine whether an answer can be saved.
+- Keep application and database clocks and time-zone settings aligned.
+
 ## CSV Exports
 
 Reports are saved in an exports folder relative to the application's
@@ -208,6 +257,18 @@ Manually checked during development:
 - Candidate results and admin reports
 - Leaderboard display and CSV generation
 - Test and question management
+- Creating and editing configured total marks
+- Blocking activation when question marks do not match test total
+- Displaying category and total marks in test lists
+- Deleting an eligible test and its questions
+- Blocking deletion of active tests and tests with attempts
+- Registered candidate directory
+- Candidate leaderboard display and input validation
+- Case-insensitive category search
+- Sorting available tests by total marks
+
+Multi-candidate leaderboard ordering and tied-score ranks still
+require a dedicated runtime check.
 
 These checks do not replace the pending final test pass. Verify
 cross-account access restrictions, repeat-attempt prevention,
