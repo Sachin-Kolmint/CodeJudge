@@ -6,6 +6,7 @@ public class Test {
     private final String description;
     private final String category;
     private final int durationMinutes;
+    private final int totalMarks;
     private final int createdBy;
     private final boolean active;
 
@@ -18,11 +19,19 @@ public class Test {
     public Test(int testId, String title, String description,
                 String category, int durationMinutes,
                 int createdBy, boolean active) {
+        this(testId, title, description, category,
+                durationMinutes, 1, createdBy, active);
+    }
+
+    public Test(int testId, String title, String description,
+                String category, int durationMinutes, int totalMarks,
+                int createdBy, boolean active) {
         this.testId = testId;
         this.title = title;
         this.description = description;
         this.category = category;
         this.durationMinutes = durationMinutes;
+        this.totalMarks = totalMarks;
         this.createdBy = createdBy;
         this.active = active;
     }
@@ -45,6 +54,10 @@ public class Test {
 
     public int getDurationMinutes() {
         return durationMinutes;
+    }
+
+    public int getTotalMarks() {
+        return totalMarks;
     }
 
     public int getCreatedBy() {

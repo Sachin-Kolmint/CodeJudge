@@ -589,6 +589,8 @@ public class AdminAuthController {
                         "Duration: " + test.getDurationMinutes()
                         + " minutes");
                 System.out.println(
+                        "Total marks: " + test.getTotalMarks());
+                System.out.println(
                         "Status: " + (test.isActive()
                                 ? "ACTIVE" : "INACTIVE"));
 
@@ -857,7 +859,8 @@ public class AdminAuthController {
                 "New title: ",
                 "New description (optional): ",
                 "New category (e.g. Java, SQL, Aptitude): ",
-                "New duration in minutes: "
+                "New duration in minutes: ",
+                "New total marks: "
         };
 
         String[] values = new String[prompts.length];
@@ -875,6 +878,7 @@ public class AdminAuthController {
         try {
             int testId = Integer.parseInt(values[0].trim());
             int duration = Integer.parseInt(values[4].trim());
+            int totalMarks = Integer.parseInt(values[5].trim());
 
             System.out.print(
                     "Save changes to Test ID " + testId + "? (yes/no): ");
@@ -886,13 +890,14 @@ public class AdminAuthController {
             }
 
             testService.updateTest(
-                    testId, values[1], values[2], values[3], duration);
+                    testId, values[1], values[2], values[3],
+                    duration, totalMarks);
 
             System.out.println("Test updated successfully.");
 
         } catch (NumberFormatException e) {
             System.out.println(
-                    "Test ID and duration must be valid whole numbers.");
+                    "Test ID, duration and total marks must be valid whole numbers.");
         } catch (IllegalArgumentException | IllegalStateException e) {
             System.out.println(e.getMessage());
         } catch (SQLException e) {
@@ -927,11 +932,18 @@ public class AdminAuthController {
         }
         String durationInput = scanner.nextLine().trim();
 
+        System.out.print("Total marks: ");
+        if (!scanner.hasNextLine()) {
+            return;
+        }
+        String totalMarksInput = scanner.nextLine().trim();
+
         try {
             int duration = Integer.parseInt(durationInput);
+            int totalMarks = Integer.parseInt(totalMarksInput);
 
             int testId = testService.createTest(
-                    title, description, category, duration);
+                    title, description, category, duration, totalMarks);
 
             System.out.println(
                     "Test created successfully. Test ID: " + testId);
@@ -939,7 +951,8 @@ public class AdminAuthController {
                     "Test is inactive. Add questions before activating it.");
 
         } catch (NumberFormatException e) {
-            System.out.println("Enter a valid whole number for duration.");
+            System.out.println(
+                    "Duration and total marks must be valid whole numbers.");
         } catch (IllegalArgumentException | IllegalStateException e) {
             System.out.println(e.getMessage());
         } catch (SQLException e) {

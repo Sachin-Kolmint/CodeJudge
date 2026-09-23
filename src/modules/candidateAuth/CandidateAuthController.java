@@ -114,7 +114,8 @@ public class CandidateAuthController {
                         + " | " + test.getTitle()
                         + " | Category: " + test.getCategory()
                         + " | Duration: "
-                        + test.getDurationMinutes() + " minutes");
+                        + test.getDurationMinutes() + " minutes"
+                        + " | Total marks: " + test.getTotalMarks());
             }
 
         } catch (IllegalStateException e) {

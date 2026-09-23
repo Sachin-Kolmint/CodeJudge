@@ -25,6 +25,13 @@ public class TestService {
     public int createTest(String title, String description,
                           String category, int durationMinutes)
             throws SQLException {
+        return createTest(title, description, category,
+                durationMinutes, 1);
+    }
+
+    public int createTest(String title, String description,
+                          String category, int durationMinutes,
+                          int totalMarks) throws SQLException {
 
         if (!session.isLoggedIn()) {
             throw new IllegalStateException("Please log in as admin.");
@@ -61,11 +68,17 @@ public class TestService {
                     "Category must not exceed 50 characters.");
         }
 
+        if (totalMarks <= 0) {
+            throw new IllegalArgumentException(
+                    "Total marks must be greater than zero.");
+        }
+
         return dao.createTest(
                 title,
                 description,
                 category,
                 durationMinutes,
+                totalMarks,
                 session.getCurrentAdmin().getAdminId()
         );
     }
@@ -85,7 +98,8 @@ public class TestService {
         if (!activated) {
             throw new IllegalStateException(
                     "Activation failed. Choose your own inactive test "
-                    + "with at least one question.");
+                    + "with at least one question. The sum of question marks "
+                    + "must equal the test total marks.");
         }
     }
     public void deactivateTest(int testId) throws SQLException {
@@ -117,7 +131,8 @@ public class TestService {
     }
     public void updateTest(int testId, String title,
                            String description, String category,
-                           int durationMinutes) throws SQLException {
+                           int durationMinutes, int totalMarks)
+            throws SQLException {
 
         if (!session.isLoggedIn()) {
             throw new IllegalStateException(
@@ -161,13 +176,19 @@ public class TestService {
                     "Category must not exceed 50 characters.");
         }
 
+        if (totalMarks <= 0) {
+            throw new IllegalArgumentException(
+                    "Total marks must be greater than zero.");
+        }
+
         boolean updated = dao.updateTest(
                 testId,
                 session.getCurrentAdmin().getAdminId(),
                 title,
                 description,
                 category,
-                durationMinutes
+                durationMinutes,
+                totalMarks
         );
 
         if (!updated) {

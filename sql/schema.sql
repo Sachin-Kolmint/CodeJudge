@@ -23,12 +23,16 @@ CREATE TABLE IF NOT EXISTS tests (
     description TEXT,
     category VARCHAR(50) NOT NULL DEFAULT 'General',
     duration_minutes INT NOT NULL,
+    total_marks INT NOT NULL DEFAULT 1,
     created_by INT NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT chk_test_duration
         CHECK (duration_minutes > 0),
+
+    CONSTRAINT chk_test_total_marks
+        CHECK (total_marks > 0),
 
     CONSTRAINT fk_test_admin
         FOREIGN KEY (created_by) REFERENCES admins(admin_id)

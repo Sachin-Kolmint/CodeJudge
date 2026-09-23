@@ -18,7 +18,7 @@ public class TestAttemptDAO {
     public List<Test> findAvailableTests() throws SQLException {
         String sql = """
                 SELECT test_id, title, description, category,
-                       duration_minutes, created_by, is_active
+                       duration_minutes, total_marks, created_by, is_active
                 FROM tests
                 WHERE is_active = TRUE
                   AND EXISTS (
@@ -42,6 +42,7 @@ public class TestAttemptDAO {
                         result.getString("description"),
                         result.getString("category"),
                         result.getInt("duration_minutes"),
+                        result.getInt("total_marks"),
                         result.getInt("created_by"),
                         result.getBoolean("is_active")
                 ));

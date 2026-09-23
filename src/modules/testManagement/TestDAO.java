@@ -24,12 +24,20 @@ public class TestDAO {
     public int createTest(String title, String description,
                           String category, int durationMinutes,
                           int createdBy) throws SQLException {
+        return createTest(title, description, category,
+                durationMinutes, 1, createdBy);
+    }
+
+    public int createTest(String title, String description,
+                          String category, int durationMinutes,
+                          int totalMarks, int createdBy)
+            throws SQLException {
 
         String sql = """
                 INSERT INTO tests
                     (title, description, category,
-                     duration_minutes, created_by)
-                VALUES (?, ?, ?, ?, ?)
+                     duration_minutes, total_marks, created_by)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection connection = DBConnection.getConnection();
@@ -40,7 +48,8 @@ public class TestDAO {
             statement.setString(2, description);
             statement.setString(3, category);
             statement.setInt(4, durationMinutes);
-            statement.setInt(5, createdBy);
+            statement.setInt(5, totalMarks);
+            statement.setInt(6, createdBy);
 
             if (statement.executeUpdate() != 1) {
                 throw new SQLException("Test could not be created.");
@@ -67,6 +76,11 @@ public class TestDAO {
                   AND EXISTS (
                       SELECT 1 FROM questions
                       WHERE questions.test_id = tests.test_id
+                  )
+                  AND total_marks = (
+                      SELECT SUM(q.marks)
+                      FROM questions q
+                      WHERE q.test_id = tests.test_id
                   )
                 """;
 
@@ -104,7 +118,7 @@ public class TestDAO {
     public List<Test> findByAdminId(int adminId) throws SQLException {
         String sql = """
                 SELECT test_id, title, description, category,
-                       duration_minutes, created_by, is_active
+                       duration_minutes, total_marks, created_by, is_active
                 FROM tests
                 WHERE created_by = ?
                 ORDER BY test_id
@@ -126,6 +140,7 @@ public class TestDAO {
                             result.getString("description"),
                             result.getString("category"),
                             result.getInt("duration_minutes"),
+                            result.getInt("total_marks"),
                             result.getInt("created_by"),
                             result.getBoolean("is_active")
                     ));
@@ -137,15 +152,16 @@ public class TestDAO {
     }
     public boolean updateTest(int testId, int adminId,
                               String title, String description,
-                              String category, int durationMinutes)
-            throws SQLException {
+                              String category, int durationMinutes,
+                              int totalMarks) throws SQLException {
 
         String sql = """
                 UPDATE tests t
                 SET title = ?,
                     description = ?,
                     category = ?,
-                    duration_minutes = ?
+                    duration_minutes = ?,
+                    total_marks = ?
                 WHERE t.test_id = ?
                   AND t.created_by = ?
                   AND t.is_active = FALSE
@@ -164,8 +180,9 @@ public class TestDAO {
             statement.setString(2, description);
             statement.setString(3, category);
             statement.setInt(4, durationMinutes);
-            statement.setInt(5, testId);
-            statement.setInt(6, adminId);
+            statement.setInt(5, totalMarks);
+            statement.setInt(6, testId);
+            statement.setInt(7, adminId);
 
             return statement.executeUpdate() == 1;
         }
