@@ -13,6 +13,7 @@ import java.time.format.DateTimeFormatter;
 import model.Question;
 
 import model.Test;
+import model.Candidate;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -60,6 +61,7 @@ public class AdminAuthController {
                 System.out.println("13. Delete Question");
                 System.out.println("14. Edit Test");
                 System.out.println("15. Delete Test");
+                System.out.println("16. Registered Candidates");
             } else {
                 System.out.println("1. Login");
             }
@@ -179,6 +181,13 @@ public class AdminAuthController {
                         System.out.println("Invalid choice.");
                     }
                 }
+                case "16" -> {
+                    if (session.isLoggedIn()) {
+                        showCandidates();
+                    } else {
+                        System.out.println("Invalid choice.");
+                    }
+                }
                 case "0" -> {
                     if (session.isLoggedIn()) {
                         service.logout();
@@ -193,7 +202,38 @@ public class AdminAuthController {
             }
         }
     }
+    private void showCandidates() {
+        try {
+            CandidateDirectoryService directoryService =
+                    new CandidateDirectoryService(session);
 
+            List<Candidate> candidates =
+                    directoryService.getCandidates();
+
+            System.out.println("\n--- Registered Candidates ---");
+
+            if (candidates.isEmpty()) {
+                System.out.println("No candidates registered yet.");
+                return;
+            }
+
+            for (Candidate candidate : candidates) {
+                System.out.println(
+                        "\nCandidate ID: " + candidate.getCandidateId());
+                System.out.println("Name: " + candidate.getFullName());
+                System.out.println("Username: " + candidate.getUsername());
+                System.out.println("Email: " + candidate.getEmail());
+            }
+
+            System.out.println("\nTotal candidates: " + candidates.size());
+
+        } catch (IllegalStateException e) {
+            System.out.println(e.getMessage());
+        } catch (SQLException e) {
+            System.out.println(
+                    "Could not load candidates. Check the database.");
+        }
+    }
     private void login() {
         if (session.isLoggedIn()) {
             System.out.println("Already logged in. Logout to switch accounts.");
