@@ -1,6 +1,8 @@
 package modules.candidateAuth;
 
 import model.Candidate;
+import model.LeaderboardEntry;
+import modules.candidateResults.CandidateLeaderboardService;
 import model.Test;
 import java.util.List;
 import modules.testAttempt.TestAttemptService;
@@ -35,6 +37,7 @@ public class CandidateAuthController {
                 System.out.println("4. Change Password");
                 System.out.println("5. Start / Resume Test");
                 System.out.println("6. My Results");
+                System.out.println("7. Test Leaderboard");
 
                 String choice = read("Choose: ");
 
@@ -53,6 +56,8 @@ public class CandidateAuthController {
                     controller.start();
                 } else if (choice.equals("6")) {
                     showMyResults();
+                } else if (choice.equals("7")) {
+                    showLeaderboard();
                 } else if (choice.equals("0")) {
                     session.logout();
                     System.out.println(
@@ -173,6 +178,67 @@ public class CandidateAuthController {
             System.out.println("Password processing failed.");
         }
     }
+    private void showLeaderboard() {
+        System.out.println("\n--- Test Leaderboard ---");
+
+        try {
+            int testId = Integer.parseInt(
+                    read("Test ID (0 to cancel): ").trim());
+
+            if (testId == 0) {
+                System.out.println("Returning to candidate menu.");
+                return;
+            }
+
+            CandidateLeaderboardService leaderboardService =
+                    new CandidateLeaderboardService(session);
+
+            List<LeaderboardEntry> entries =
+                    leaderboardService.getLeaderboard(testId);
+
+            if (entries.isEmpty()) {
+                System.out.println(
+                        "No completed results found for this Test ID.");
+                return;
+            }
+
+            System.out.println("\nLeaderboard for Test ID: " + testId);
+            System.out.println("Equal scores share the same rank.");
+
+            int rank = 0;
+            int previousScore = -1;
+
+            for (int i = 0; i < entries.size(); i++) {
+                LeaderboardEntry entry = entries.get(i);
+
+                if (i == 0 || entry.score() != previousScore) {
+                    rank = i + 1;
+                }
+
+                String marker =
+                        entry.candidateId()
+                                == session.getCurrentCandidate().getCandidateId()
+                                ? " (You)" : "";
+
+                System.out.println(
+                        "Rank: " + rank
+                        + " | " + entry.candidateName() + marker
+                        + " | Score: " + entry.score()
+                        + "/" + entry.totalMarks());
+
+                previousScore = entry.score();
+            }
+
+        } catch (NumberFormatException e) {
+            System.out.println("Test ID must be a valid whole number.");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            System.out.println(e.getMessage());
+        } catch (SQLException e) {
+            System.out.println(
+                    "Could not load leaderboard. Check the database.");
+        }
+    }
+
     private void showMyResults() {
         try {
             CandidateResultsService resultsService =
