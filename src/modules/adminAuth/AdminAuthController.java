@@ -59,6 +59,7 @@ public class AdminAuthController {
                 System.out.println("12. Edit Question");
                 System.out.println("13. Delete Question");
                 System.out.println("14. Edit Test");
+                System.out.println("15. Delete Test");
             } else {
                 System.out.println("1. Login");
             }
@@ -167,6 +168,13 @@ public class AdminAuthController {
                 case "14" -> {
                     if (session.isLoggedIn()) {
                         editTest();
+                    } else {
+                        System.out.println("Invalid choice.");
+                    }
+                }
+                case "15" -> {
+                    if (session.isLoggedIn()) {
+                        deleteTest();
                     } else {
                         System.out.println("Invalid choice.");
                     }
@@ -535,7 +543,8 @@ public class AdminAuthController {
             for (Test test : tests) {
                 System.out.println(
                         "\nTest ID: " + test.getTestId()
-                        + " | " + test.getTitle());
+                        + " | " + test.getTitle()
+                        + " | Category: " + test.getCategory());
                 System.out.println(
                         "Duration: " + test.getDurationMinutes()
                         + " minutes");
@@ -747,6 +756,54 @@ public class AdminAuthController {
                     "Could not delete the question. Check the database.");
         }
     }
+    private void deleteTest() {
+        System.out.println("\n--- Delete Test ---");
+        System.out.println(
+                "Only your own inactive test with no attempts can be deleted.");
+
+        System.out.print("Test ID (0 to cancel): ");
+        if (!scanner.hasNextLine()) {
+            return;
+        }
+
+        String input = scanner.nextLine().trim();
+
+        if (input.equals("0")) {
+            System.out.println("Test deletion cancelled.");
+            return;
+        }
+
+        try {
+            int testId = Integer.parseInt(input);
+
+            if (testId <= 0) {
+                System.out.println("Test ID must be positive.");
+                return;
+            }
+
+            System.out.println(
+                    "This permanently deletes the test and all its questions.");
+            System.out.print(
+                    "Delete Test ID " + testId + "? (yes/no): ");
+
+            if (!scanner.hasNextLine()
+                    || !scanner.nextLine().trim().equalsIgnoreCase("yes")) {
+                System.out.println("Test deletion cancelled.");
+                return;
+            }
+
+            testService.deleteTest(testId);
+            System.out.println("Test and its questions deleted successfully.");
+
+        } catch (NumberFormatException e) {
+            System.out.println("Test ID must be a valid whole number.");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            System.out.println(e.getMessage());
+        } catch (SQLException e) {
+            System.out.println(
+                    "Could not delete the test. Check the database.");
+        }
+    }
     private void editTest() {
         System.out.println("\n--- Edit Test ---");
         System.out.println(
@@ -759,6 +816,7 @@ public class AdminAuthController {
                 "Test ID: ",
                 "New title: ",
                 "New description (optional): ",
+                "New category (e.g. Java, SQL, Aptitude): ",
                 "New duration in minutes: "
         };
 
@@ -776,7 +834,7 @@ public class AdminAuthController {
 
         try {
             int testId = Integer.parseInt(values[0].trim());
-            int duration = Integer.parseInt(values[3].trim());
+            int duration = Integer.parseInt(values[4].trim());
 
             System.out.print(
                     "Save changes to Test ID " + testId + "? (yes/no): ");
@@ -788,7 +846,7 @@ public class AdminAuthController {
             }
 
             testService.updateTest(
-                    testId, values[1], values[2], duration);
+                    testId, values[1], values[2], values[3], duration);
 
             System.out.println("Test updated successfully.");
 
@@ -817,6 +875,12 @@ public class AdminAuthController {
         }
         String description = scanner.nextLine();
 
+        System.out.print("Category (e.g. Java, SQL, Aptitude): ");
+        if (!scanner.hasNextLine()) {
+            return;
+        }
+        String category = scanner.nextLine();
+
         System.out.print("Duration in minutes: ");
         if (!scanner.hasNextLine()) {
             return;
@@ -827,7 +891,7 @@ public class AdminAuthController {
             int duration = Integer.parseInt(durationInput);
 
             int testId = testService.createTest(
-                    title, description, duration);
+                    title, description, category, duration);
 
             System.out.println(
                     "Test created successfully. Test ID: " + testId);

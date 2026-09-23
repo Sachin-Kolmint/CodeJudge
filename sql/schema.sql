@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS tests (
     test_id INT PRIMARY KEY AUTO_INCREMENT,
     title VARCHAR(150) NOT NULL,
     description TEXT,
+    category VARCHAR(50) NOT NULL DEFAULT 'General',
     duration_minutes INT NOT NULL,
     created_by INT NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT FALSE,

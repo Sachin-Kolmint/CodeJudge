@@ -107,6 +107,7 @@ public class CandidateAuthController {
                 System.out.println(
                         "ID: " + test.getTestId()
                         + " | " + test.getTitle()
+                        + " | Category: " + test.getCategory()
                         + " | Duration: "
                         + test.getDurationMinutes() + " minutes");
             }

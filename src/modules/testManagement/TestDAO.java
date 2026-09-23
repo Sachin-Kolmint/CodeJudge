@@ -17,11 +17,19 @@ public class TestDAO {
     public int createTest(String title, String description,
                           int durationMinutes, int createdBy)
             throws SQLException {
+        return createTest(title, description, "General",
+                durationMinutes, createdBy);
+    }
+
+    public int createTest(String title, String description,
+                          String category, int durationMinutes,
+                          int createdBy) throws SQLException {
 
         String sql = """
                 INSERT INTO tests
-                    (title, description, duration_minutes, created_by)
-                VALUES (?, ?, ?, ?)
+                    (title, description, category,
+                     duration_minutes, created_by)
+                VALUES (?, ?, ?, ?, ?)
                 """;
 
         try (Connection connection = DBConnection.getConnection();
@@ -30,8 +38,9 @@ public class TestDAO {
 
             statement.setString(1, title);
             statement.setString(2, description);
-            statement.setInt(3, durationMinutes);
-            statement.setInt(4, createdBy);
+            statement.setString(3, category);
+            statement.setInt(4, durationMinutes);
+            statement.setInt(5, createdBy);
 
             if (statement.executeUpdate() != 1) {
                 throw new SQLException("Test could not be created.");
@@ -94,7 +103,7 @@ public class TestDAO {
     }
     public List<Test> findByAdminId(int adminId) throws SQLException {
         String sql = """
-                SELECT test_id, title, description,
+                SELECT test_id, title, description, category,
                        duration_minutes, created_by, is_active
                 FROM tests
                 WHERE created_by = ?
@@ -115,6 +124,7 @@ public class TestDAO {
                             result.getInt("test_id"),
                             result.getString("title"),
                             result.getString("description"),
+                            result.getString("category"),
                             result.getInt("duration_minutes"),
                             result.getInt("created_by"),
                             result.getBoolean("is_active")
@@ -127,12 +137,14 @@ public class TestDAO {
     }
     public boolean updateTest(int testId, int adminId,
                               String title, String description,
-                              int durationMinutes) throws SQLException {
+                              String category, int durationMinutes)
+            throws SQLException {
 
         String sql = """
                 UPDATE tests t
                 SET title = ?,
                     description = ?,
+                    category = ?,
                     duration_minutes = ?
                 WHERE t.test_id = ?
                   AND t.created_by = ?
@@ -150,11 +162,91 @@ public class TestDAO {
 
             statement.setString(1, title);
             statement.setString(2, description);
-            statement.setInt(3, durationMinutes);
-            statement.setInt(4, testId);
-            statement.setInt(5, adminId);
+            statement.setString(3, category);
+            statement.setInt(4, durationMinutes);
+            statement.setInt(5, testId);
+            statement.setInt(6, adminId);
 
             return statement.executeUpdate() == 1;
+        }
+    }
+    public boolean deleteTest(int testId, int adminId)
+            throws SQLException {
+
+        String lockSql = """
+                SELECT test_id
+                FROM tests
+                WHERE test_id = ?
+                  AND created_by = ?
+                  AND is_active = FALSE
+                FOR UPDATE
+                """;
+
+        String attemptsSql = """
+                SELECT 1 FROM test_attempts
+                WHERE test_id = ?
+                LIMIT 1
+                """;
+
+        try (Connection connection = DBConnection.getConnection()) {
+            connection.setAutoCommit(false);
+
+            try {
+                try (PreparedStatement statement =
+                             connection.prepareStatement(lockSql)) {
+                    statement.setInt(1, testId);
+                    statement.setInt(2, adminId);
+
+                    try (ResultSet result = statement.executeQuery()) {
+                        if (!result.next()) {
+                            connection.rollback();
+                            return false;
+                        }
+                    }
+                }
+
+                try (PreparedStatement statement =
+                             connection.prepareStatement(attemptsSql)) {
+                    statement.setInt(1, testId);
+
+                    try (ResultSet result = statement.executeQuery()) {
+                        if (result.next()) {
+                            connection.rollback();
+                            return false;
+                        }
+                    }
+                }
+
+                try (PreparedStatement statement =
+                             connection.prepareStatement(
+                                     "DELETE FROM questions WHERE test_id = ?")) {
+                    statement.setInt(1, testId);
+                    statement.executeUpdate();
+                }
+
+                try (PreparedStatement statement =
+                             connection.prepareStatement(
+                                     "DELETE FROM tests WHERE test_id = ? "
+                                     + "AND created_by = ? AND is_active = FALSE")) {
+                    statement.setInt(1, testId);
+                    statement.setInt(2, adminId);
+
+                    if (statement.executeUpdate() != 1) {
+                        throw new SQLException("Test could not be deleted.");
+                    }
+                }
+
+                connection.commit();
+                return true;
+
+            } catch (SQLException | RuntimeException e) {
+                try {
+                    connection.rollback();
+                } catch (SQLException rollbackError) {
+                    e.addSuppressed(rollbackError);
+                }
+                throw e;
+            }
         }
     }
 }

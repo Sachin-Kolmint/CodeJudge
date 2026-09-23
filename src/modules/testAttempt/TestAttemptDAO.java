@@ -17,7 +17,7 @@ public class TestAttemptDAO {
 
     public List<Test> findAvailableTests() throws SQLException {
         String sql = """
-                SELECT test_id, title, description,
+                SELECT test_id, title, description, category,
                        duration_minutes, created_by, is_active
                 FROM tests
                 WHERE is_active = TRUE
@@ -40,6 +40,7 @@ public class TestAttemptDAO {
                         result.getInt("test_id"),
                         result.getString("title"),
                         result.getString("description"),
+                        result.getString("category"),
                         result.getInt("duration_minutes"),
                         result.getInt("created_by"),
                         result.getBoolean("is_active")

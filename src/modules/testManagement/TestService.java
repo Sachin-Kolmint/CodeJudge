@@ -19,6 +19,12 @@ public class TestService {
 
     public int createTest(String title, String description,
                           int durationMinutes) throws SQLException {
+        return createTest(title, description, "General", durationMinutes);
+    }
+
+    public int createTest(String title, String description,
+                          String category, int durationMinutes)
+            throws SQLException {
 
         if (!session.isLoggedIn()) {
             throw new IllegalStateException("Please log in as admin.");
@@ -44,9 +50,21 @@ public class TestService {
             description = description.trim();
         }
 
+        if (category == null || category.isBlank()) {
+            throw new IllegalArgumentException("Category is required.");
+        }
+
+        category = category.trim();
+
+        if (category.length() > 50) {
+            throw new IllegalArgumentException(
+                    "Category must not exceed 50 characters.");
+        }
+
         return dao.createTest(
                 title,
                 description,
+                category,
                 durationMinutes,
                 session.getCurrentAdmin().getAdminId()
         );
@@ -98,8 +116,8 @@ public class TestService {
                 session.getCurrentAdmin().getAdminId());
     }
     public void updateTest(int testId, String title,
-                           String description, int durationMinutes)
-            throws SQLException {
+                           String description, String category,
+                           int durationMinutes) throws SQLException {
 
         if (!session.isLoggedIn()) {
             throw new IllegalStateException(
@@ -132,17 +150,47 @@ public class TestService {
             description = description.trim();
         }
 
+        if (category == null || category.isBlank()) {
+            throw new IllegalArgumentException("Category is required.");
+        }
+
+        category = category.trim();
+
+        if (category.length() > 50) {
+            throw new IllegalArgumentException(
+                    "Category must not exceed 50 characters.");
+        }
+
         boolean updated = dao.updateTest(
                 testId,
                 session.getCurrentAdmin().getAdminId(),
                 title,
                 description,
+                category,
                 durationMinutes
         );
 
         if (!updated) {
             throw new IllegalStateException(
                     "Update failed. Choose your own inactive test "
+                    + "with no attempts.");
+        }
+    }
+    public void deleteTest(int testId) throws SQLException {
+        if (!session.isLoggedIn()) {
+            throw new IllegalStateException("Please log in as admin.");
+        }
+
+        if (testId <= 0) {
+            throw new IllegalArgumentException("Test ID must be positive.");
+        }
+
+        boolean deleted = dao.deleteTest(
+                testId, session.getCurrentAdmin().getAdminId());
+
+        if (!deleted) {
+            throw new IllegalStateException(
+                    "Delete failed. Choose your own inactive test "
                     + "with no attempts.");
         }
     }
