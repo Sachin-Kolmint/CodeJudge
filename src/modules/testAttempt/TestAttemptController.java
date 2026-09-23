@@ -56,7 +56,10 @@ public class TestAttemptController {
             System.out.println("Deadline: " + attempt.getDeadlineAt());
             System.out.println("Total marks: " + attempt.getTotalMarks());
 
-            answerQuestions(attempt.getAttemptId());
+            try (TestCountdown countdown =
+                         new TestCountdown(attempt.getDeadlineAt())) {
+                answerQuestions(attempt.getAttemptId(), countdown);
+            }
 
         } catch (NumberFormatException e) {
             System.out.println("Enter a valid whole number for Test ID.");
@@ -68,7 +71,8 @@ public class TestAttemptController {
         }
     }
 
-    private void answerQuestions(int attemptId) throws SQLException {
+    private void answerQuestions(int attemptId, TestCountdown countdown)
+            throws SQLException {
         while (true) {
             List<AttemptQuestion> questions =
                     service.getAttemptQuestions(attemptId);
@@ -115,6 +119,7 @@ public class TestAttemptController {
                 }
 
                 int score = evaluationService.submitAttempt(attemptId);
+                countdown.close();
 
                 System.out.println("Test finalized successfully.");
                 System.out.println("Your score: " + score);
@@ -122,6 +127,7 @@ public class TestAttemptController {
                 return;
             }
             if (input.equals("0")) {
+                countdown.close();
                 System.out.println(
                         "Returning to candidate menu. Saved answers are kept.");
                 return;
