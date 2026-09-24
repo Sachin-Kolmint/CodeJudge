@@ -26,6 +26,16 @@ public class CandidateAuthController {
     }
 
     public void start() {
+        try {
+            runMenu();
+        } catch (java.util.NoSuchElementException e) {
+            session.logout();
+            System.out.println(
+                    "\nInput closed. Candidate session cleared.");
+        }
+    }
+
+    private void runMenu() {
         while (true) {
             if (session.isLoggedIn()) {
                 System.out.println("\nWelcome, "
@@ -360,6 +370,7 @@ public class CandidateAuthController {
                 java.util.Arrays.fill(password, '\0');
             }
         }
-        return read("Password (visible): ");
+        throw new IllegalArgumentException(
+                "Run from Windows CMD for hidden password input.");
     }
 }

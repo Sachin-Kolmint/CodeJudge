@@ -118,6 +118,17 @@ marks were added, run the missing migrations in this order:
 ```sql
 SOURCE C:/CodeJudge/sql/migration_001_test_category.sql;
 SOURCE C:/CodeJudge/sql/migration_002_test_total_marks.sql;
+```
+
+Run each migration only once. If migration 001 was already applied,
+run only migration 002. If both were applied, run neither.
+
+Migration 001 assigns General to existing tests.
+Migration 002 initializes total marks from the sum of existing
+question marks, or 1 for tests without questions.
+
+Back up an existing database before applying migrations.
+
 
 ## Compile
 

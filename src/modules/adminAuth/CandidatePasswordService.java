@@ -36,9 +36,10 @@ public class CandidatePasswordService {
         }
 
         if (newPassword == null || newPassword.isBlank()
-                || newPassword.length() < 8) {
+                || newPassword.length() < 8
+                || newPassword.length() > 128) {
             throw new IllegalArgumentException(
-                    "Password must contain at least 8 characters "
+                    "Password must contain 8-128 characters "
                     + "and cannot be only spaces.");
         }
 
